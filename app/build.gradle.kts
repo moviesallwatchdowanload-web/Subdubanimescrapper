@@ -1,3 +1,5 @@
+version = 1
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
@@ -26,14 +28,12 @@ android {
 
 cloudstream {
     language = "hi"
-    description = "SubDubAnime CloudStream Extension"
+    description = "SubDubAnime — Hindi Subbed and Dubbed Anime"
     authors = listOf("megix")
     status = 1
-    tvTypes = listOf(
-        "Anime",
-        "TvSeries",
-        "Movie"
-    )
+    tvTypes = listOf("Anime", "TvSeries", "Movie")
+    iconUrl = "https://subdubanime.site/favicon.ico"
+    setRepo("https://github.com/moviesallwatchdowanload-web/Subdubanimescrapper")
 }
 
 dependencies {
