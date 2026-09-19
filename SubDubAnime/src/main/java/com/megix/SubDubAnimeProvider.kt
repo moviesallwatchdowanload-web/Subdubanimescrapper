@@ -60,7 +60,14 @@ class SubDubAnimeProvider : MainAPI() {
 
     private suspend fun fetchAll(): AnimeData {
         return try {
-            val json = app.get(apiUrl).text
+            val json = app.get(
+                apiUrl,
+                headers = mapOf(
+                    "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Accept" to "application/json, text/plain, */*"
+                )
+            ).text
+
             val parsed = tryParseJson<ApiResponse>(json)
             parsed?.data ?: AnimeData(emptyMap(), emptyMap())
         } catch (e: Exception) {
