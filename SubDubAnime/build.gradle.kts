@@ -1,4 +1,4 @@
-version = 2
+version = 1
 
 plugins {
     id("com.android.library")
