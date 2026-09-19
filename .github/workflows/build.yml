@@ -56,7 +56,7 @@ jobs:
           ./gradlew make makePluginsJson
 
           mkdir -p "$GITHUB_WORKSPACE/builds"
-          find . -path "*/build/*.cs3" -exec cp {} "$GITHUB_WORKSPACE/builds/" \;
+          cp SubDubAnime/build/SubDubAnime.cs3 "$GITHUB_WORKSPACE/builds/SubDubAnime.cs3"
           cp build/plugins.json "$GITHUB_WORKSPACE/builds/" || echo "No plugins.json found"
           cp repo.json "$GITHUB_WORKSPACE/builds/" || echo "No repo.json found"
 
