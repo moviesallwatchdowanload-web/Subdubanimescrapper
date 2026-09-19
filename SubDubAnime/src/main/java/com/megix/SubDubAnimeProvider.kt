@@ -78,14 +78,16 @@ class SubDubAnimeProvider : MainAPI() {
     private fun AnimeItem.toSearchResponse(): SearchResponse? {
         val id = tmdbId ?: return null
         val displayTitle = title ?: return null
-        val itemType = if (type?.equals("Series", true) == true) {
-            TvType.TvSeries
-        } else {
-            TvType.Movie
-        }
+        val isSeries = type?.equals("Series", true) == true
 
-        return newMovieSearchResponse(displayTitle, id, itemType) {
-            this.posterUrl = images?.poster
+        return if (isSeries) {
+            newTvSeriesSearchResponse(displayTitle, id, TvType.TvSeries) {
+                this.posterUrl = images?.poster
+            }
+        } else {
+            newMovieSearchResponse(displayTitle, id, TvType.Movie) {
+                this.posterUrl = images?.poster
+            }
         }
     }
 
