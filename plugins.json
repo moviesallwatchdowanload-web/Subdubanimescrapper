@@ -1,0 +1,24 @@
+[
+    {
+        "iconUrl": "https://subdubanime.site/favicon.ico",
+        "fileHash": "sha256-d44df37967e4ec8c3d2d0f3c86247b7f8b06ad9726bfe1f3a213e2e4d999e93c",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/moviesallwatchdowanload-web/Subdubanimescrapper",
+        "fileSize": 30236,
+        "status": 1,
+        "language": "hi",
+        "authors": [
+            "megix"
+        ],
+        "tvTypes": [
+            "Anime",
+            "TvSeries",
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "SubDubAnime",
+        "description": "SubDubAnime \u2014 Hindi Subbed and Dubbed Anime",
+        "url": "https://raw.githubusercontent.com/moviesallwatchdowanload-web/Subdubanimescrapper/builds/SubDubAnime.cs3",
+        "name": "SubDubAnime"
+    }
+]

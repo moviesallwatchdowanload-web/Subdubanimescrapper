@@ -1,0 +1,9 @@
+{
+  "name": "SubDubAnime Repository",
+  "description": "SubDubAnime — Hindi Subbed and Dubbed Anime",
+  "iconUrl": "https://subdubanime.site/favicon.ico",
+  "manifestVersion": 1,
+  "pluginLists": [
+    "https://raw.githubusercontent.com/moviesallwatchdowanload-web/Subdubanimescrapper/builds/plugins.json"
+  ]
+}
