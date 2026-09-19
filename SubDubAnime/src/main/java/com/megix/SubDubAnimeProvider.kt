@@ -158,49 +158,24 @@ class SubDubAnimeProvider : MainAPI() {
             }
         }
     }
+      
+override suspend fun loadLinks(
+    data: String,
+    isCasting: Boolean,
+    subtitleCallback: (SubtitleFile) -> Unit,
+    callback: (ExtractorLink) -> Unit
+): Boolean {
 
-    override suspend fun loadLinks(
-        data: String,
-        isCasting: Boolean,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ): Boolean {
-        val parts = data.split("|")
-        if (parts.size < 4) return false
-
-        val tmdbId = parts[0]
-        val season = parts[1].toIntOrNull() ?: 1
-        val episode = parts[2].toIntOrNull() ?: 1
-        val type = parts[3]
-
-        val embedUrl = if (type == "movie") {
-            "${blakiteBase}embed/$tmdbId"
-        } else {
-            "${blakiteBase}embed/$tmdbId/$season-$episode"
-        }
-
-        loadExtractor(embedUrl, "$mainUrl/", subtitleCallback) { link ->
-            callback.invoke(link)
-        }
-
-        val downloadUrl = if (type == "movie") {
-            "${blakiteBase}stream/$tmdbId"
-        } else {
-            "${blakiteBase}stream/$tmdbId/$season-$episode"
-        }
-
-        callback.invoke(
-            newExtractorLink(
-                source = "Blakite Download",
-                name = "Blakite Download",
-                url = downloadUrl,
-                type = ExtractorLinkType.VIDEO
-            ) {
-                this.referer = "$mainUrl/"
-            }
+    callback.invoke(
+        newExtractorLink(
+            source = "SubDubAnime",
+            name = "SubDubAnime HLS",
+            url = "https://hugh.cdn.rumble.cloud/video/fww1/fb/s8/2/K/R/B/K/KRBKA.haa.tar?r_file=chunklist.m3u8&r_type=application%2Fvnd.apple.mpegurl&r_range=4763655168-4763749878",
+            type = ExtractorLinkType.VIDEO
         )
+    )
 
-        return true
+    return true
     }
 
     // ===== Data classes =====
