@@ -1,0 +1,15 @@
+{
+  "plugins": [
+    {
+      "name": "SubDub Anime",
+      "author": "Megix",
+      "description": "SubDub Anime Provider for CloudStream",
+      "language": "hi",
+      "version": 1,
+      "url": "https://raw.githubusercontent.com/moviesallwatchdowanload-web/Subdubanimescrapper/main/build/rounded/SubDubAnime.cs3",
+      "internalName": "SubDubAnime",
+      "iconUrl": "https://subdubanime.site/favicon.ico",
+      "types": ["Anime"]
+    }
+  ]
+}
