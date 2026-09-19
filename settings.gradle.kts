@@ -8,4 +8,4 @@ pluginManagement {
 }
 
 rootProject.name = "SubDubAnime"
-include(":app")
+include(":SubDubAnime")
