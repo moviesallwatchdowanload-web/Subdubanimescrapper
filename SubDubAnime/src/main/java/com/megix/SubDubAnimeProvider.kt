@@ -2,118 +2,225 @@ package com.megix
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
-import com.lagradost.cloudstream3.utils.AppUtils.parseJson
+import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
+import com.fasterxml.jackson.annotation.JsonProperty
 
-open class SubDubAnimeProvider : MainAPI() {
-
-    override var mainUrl = "https://ok.solarpanelcleaning.cc"
-    override var name = "CineJoy"
-
-    override val hasMainPage = true
-    override var lang = "hi"
-
+class SubDubAnimeProvider : MainAPI() {
+    override var mainUrl = "https://www.subdubanime.site"
+    override var name = "SubDub Anime"
     override val supportedTypes = setOf(
-        TvType.Movie
+        TvType.Anime,
+        TvType.AnimeMovie,
+        TvType.Movie,
+        TvType.TvSeries
     )
+    override var lang = "hi"
+    override val hasMainPage = true
+    override val hasDownloadSupport = true
 
-    private val testM3u8 =
-        "https://ok.solarpanelcleaning.cc/playlist/_ob6P6lqGyaiEGeoUmDUtg.m3u8"
+    private val apiUrl = "https://blakiteapi.xyz/api/getAllAnime.php"
+    private val blakiteBase = "https://blakiteapi.xyz/"
+    private val rubyBase = "https://rubyvidhub.com/"
 
     override val mainPage = mainPageOf(
-        "test" to "CineJoy Test"
+        "all" to "All Anime",
+        "movies" to "Movies",
+        "series" to "Series",
+        "hindi" to "Hindi Dubbed",
+        "fandub" to "Hindi Fan Dub",
+        "engsub" to "English Subbed"
     )
 
     override suspend fun getMainPage(
         page: Int,
         request: MainPageRequest
     ): HomePageResponse {
+        val data = fetchAll()
+        val allItems = (data.movies.values + data.series.values).toList()
 
-        val result = newMovieSearchResponse(
-            "CineJoy HLS Test",
-            "cinejoy-test",
-            TvType.Movie
-        ) {
-            this.posterUrl = null
+        val filtered = when (request.data) {
+            "movies" -> data.movies.values.toList()
+            "series" -> data.series.values.toList()
+            "hindi" -> allItems.filter {
+                it.language?.contains("Hindi", true) == true
+            }
+            "fandub" -> allItems.filter {
+                it.language?.contains("Fan", true) == true ||
+                    it.language?.contains("Fandub", true) == true
+            }
+            "engsub" -> allItems.filter {
+                it.language?.contains("English Subbed", true) == true
+            }
+            else -> allItems
         }
 
-        return newHomePageResponse(
-            request.name,
-            listOf(result)
-        )
+        val results = filtered.mapNotNull { it.toSearchResponse() }
+        return newHomePageResponse(request.name, results)
     }
 
-    override suspend fun search(
-        query: String
-    ): List<SearchResponse> {
+    private suspend fun fetchAll(): AnimeData {
+        return try {
+            val json = app.get(
+                apiUrl,
+                headers = mapOf(
+                    "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Accept" to "application/json, text/plain, */*"
+                )
+            ).text
 
-        if (
-            !"cinejoy hls test".contains(query, ignoreCase = true) &&
-            !query.contains("cinejoy", ignoreCase = true) &&
-            !query.contains("test", ignoreCase = true)
-        ) {
-            return emptyList()
-        }
-
-        return listOf(
-            newMovieSearchResponse(
-                "CineJoy HLS Test",
-                "cinejoy-test",
-                TvType.Movie
-            )
-        )
-    }
-
-    override suspend fun load(
-        url: String
-    ): LoadResponse? {
-
-        if (url != "cinejoy-test") {
-            return null
-        }
-
-        val data = listOf(
-            EpisodeLink(
-                testM3u8
-            )
-        )
-
-        return newMovieLoadResponse(
-            "CineJoy HLS Test",
-            url,
-            TvType.Movie,
-            data
-        ) {
-            this.plot = "CineJoy direct HLS playback test."
+            val parsed = tryParseJson<ApiResponse>(json)
+            parsed?.data ?: AnimeData(emptyMap(), emptyMap())
+        } catch (e: Exception) {
+            AnimeData(emptyMap(), emptyMap())
         }
     }
 
-    override suspend fun loadLinks(
-        data: String,
-        isCasting: Boolean,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ): Boolean {
+    private fun AnimeItem.toSearchResponse(): SearchResponse? {
+        val id = tmdbId ?: return null
+        val displayTitle = title ?: return null
+        val isSeries = type?.equals("Series", true) == true
 
-        val sources = parseJson<ArrayList<EpisodeLink>>(data)
+        return if (isSeries) {
+            newTvSeriesSearchResponse(displayTitle, id, TvType.TvSeries) {
+                this.posterUrl = images?.poster
+            }
+        } else {
+            newMovieSearchResponse(displayTitle, id, TvType.Movie) {
+                this.posterUrl = images?.poster
+            }
+        }
+    }
 
-        sources.forEach {
-            callback(
-                newExtractorLink(
-                    source = "CineJoy",
-                    name = "CineJoy HLS",
-                    url = it.source,
-                    type = ExtractorLinkType.M3U8
-                ) {
-                    this.quality = Qualities.P1080.value
-                    this.referer = "https://ok.solarpanelcleaning.cc/"
+    override suspend fun search(query: String): List<SearchResponse> {
+        val data = fetchAll()
+        val allItems = (data.movies.values + data.series.values).toList()
+        return allItems
+            .filter { it.title?.contains(query, true) == true }
+            .mapNotNull { it.toSearchResponse() }
+    }
+
+    override suspend fun load(url: String): LoadResponse? {
+        val data = fetchAll()
+        val item = data.movies[url]
+            ?: data.series[url]
+            ?: (data.movies.values + data.series.values)
+                .firstOrNull { it.tmdbId == url }
+            ?: return null
+
+        val title = item.title ?: "Unknown"
+        val poster = item.images?.poster
+        val plot = item.tmdbData?.synopsis
+        val year = item.tmdbData?.releaseDate
+            ?.substringBefore("-")
+            ?.toIntOrNull()
+        val rating = item.tmdbData?.rating?.toDoubleOrNull()
+        val genres = item.tmdbData?.genres ?: emptyList()
+        val isSeries = item.type?.equals("Series", true) == true
+        val tmdbId = item.tmdbId ?: url
+
+        return if (isSeries) {
+            val episodes = mutableListOf<Episode>()
+            val seasons = item.seasons ?: emptyMap()
+
+            seasons.forEach { (seasonKey, seasonInfo) ->
+                val seasonNum = seasonInfo.seasonNumber
+                    ?: seasonKey.toIntOrNull()
+                    ?: 1
+                val total = seasonInfo.totalEpisodes ?: 0
+                for (ep in 1..total) {
+                    val episodeData = "$tmdbId|$seasonNum|$ep|series"
+                    episodes.add(
+                        newEpisode(episodeData) {
+                            this.name = "S$seasonNum E$ep"
+                            this.season = seasonNum
+                            this.episode = ep
+                            this.posterUrl = poster
+                        }
+                    )
                 }
-            )
-        }
+            }
 
-        return true
+            newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
+                this.posterUrl = poster
+                this.plot = plot
+                this.year = year
+                this.tags = genres
+                this.score = Score.from10(rating)
+            }
+        } else {
+            val movieData = "$tmdbId|1|1|movie"
+            newMovieLoadResponse(title, url, TvType.Movie, movieData) {
+                this.posterUrl = poster
+                this.plot = plot
+                this.year = year
+                this.tags = genres
+                this.score = Score.from10(rating)
+            }
+        }
+    }
+      
+override suspend fun loadLinks(
+    data: String,
+    isCasting: Boolean,
+    subtitleCallback: (SubtitleFile) -> Unit,
+    callback: (ExtractorLink) -> Unit
+): Boolean {
+
+    callback.invoke(
+        newExtractorLink(
+            source = "SubDubAnime",
+            name = "SubDubAnime HLS",
+            url = "https://hugh.cdn.rumble.cloud/video/fww1/fb/s8/2/K/R/B/K/KRBKA.haa.tar?r_file=chunklist.m3u8&r_type=application%2Fvnd.apple.mpegurl&r_range=4763655168-4763749878",
+            type = ExtractorLinkType.VIDEO
+        )
+    )
+
+    return true
     }
 
-    data class EpisodeLink(
-        val source: String
+    // ===== Data classes =====
+    data class ApiResponse(
+        val success: Boolean? = null,
+        val data: AnimeData = AnimeData(emptyMap(), emptyMap())
+    )
+
+    data class AnimeData(
+        val movies: Map<String, AnimeItem> = emptyMap(),
+        val series: Map<String, AnimeItem> = emptyMap()
+    )
+
+    data class AnimeItem(
+        val tmdbId: String? = null,
+        @JsonProperty("originalTmdbId")
+        val originalTmdbId: String? = null,
+        val title: String? = null,
+        val language: String? = null,
+        val type: String? = null,
+        val status: String? = null,
+        @JsonProperty("TMDB_DATA")
+        val tmdbData: TmdbData? = null,
+        @JsonProperty("IMAGES")
+        val images: Images? = null,
+        val seasons: Map<String, SeasonInfo>? = null
+    )
+
+    data class TmdbData(
+        val genres: List<String>? = null,
+        val synopsis: String? = null,
+        val rating: String? = null,
+        val releaseDate: String? = null,
+        val keywords: List<String>? = null,
+        val trailer: String? = null
+    )
+
+    data class Images(
+        val poster: String? = null,
+        val backdrop: String? = null
+    )
+
+    data class SeasonInfo(
+        val seasonNumber: Int? = null,
+        val status: String? = null,
+        val totalEpisodes: Int? = null
     )
 }
