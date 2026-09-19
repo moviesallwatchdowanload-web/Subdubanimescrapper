@@ -2,60 +2,151 @@ package com.megix
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
-import org.jsoup.nodes.Element
+import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
+import com.fasterxml.jackson.annotation.JsonProperty
 
 class SubDubAnimeProvider : MainAPI() {
-    override var mainUrl = "https://subdubanime.site"
+    override var mainUrl = "https://www.subdubanime.site"
     override var name = "SubDub Anime"
-    override val supportedTypes = setOf(TvType.Anime, TvType.AnimeMovie)
+    override val supportedTypes = setOf(
+        TvType.Anime,
+        TvType.AnimeMovie,
+        TvType.Movie,
+        TvType.TvSeries
+    )
     override var lang = "hi"
     override val hasMainPage = true
+    override val hasDownloadSupport = true
+
+    private val apiUrl = "https://blakiteapi.xyz/api/getAllAnime.php"
+    private val blakiteBase = "https://blakiteapi.xyz/"
+    private val rubyBase = "https://rubyvidhub.com/"
 
     override val mainPage = mainPageOf(
-        "$mainUrl/" to "Home / Ongoing Anime"
+        "all" to "All Anime",
+        "movies" to "Movies",
+        "series" to "Series",
+        "hindi" to "Hindi Dubbed",
+        "fandub" to "Hindi Fan Dub",
+        "engsub" to "English Subbed"
     )
 
     override suspend fun getMainPage(
         page: Int,
         request: MainPageRequest
     ): HomePageResponse {
-        val document = app.get(request.data).document
-        val home = document.select("div.item, div.anime-card, div.film-poster").mapNotNull { it.toSearchResult() }
-        return newHomePageResponse(request.name, home)
+        val data = fetchAll()
+        val allItems = (data.movies.values + data.series.values).toList()
+
+        val filtered = when (request.data) {
+            "movies" -> data.movies.values.toList()
+            "series" -> data.series.values.toList()
+            "hindi" -> allItems.filter {
+                it.language?.contains("Hindi", true) == true
+            }
+            "fandub" -> allItems.filter {
+                it.language?.contains("Fan", true) == true ||
+                    it.language?.contains("Fandub", true) == true
+            }
+            "engsub" -> allItems.filter {
+                it.language?.contains("English Subbed", true) == true
+            }
+            else -> allItems
+        }
+
+        val results = filtered.mapNotNull { it.toSearchResponse() }
+        return newHomePageResponse(request.name, results)
     }
 
-    private fun Element.toSearchResult(): AnimeSearchResponse? {
-        val title = this.selectFirst("a.dynamic-name, h3 a, .film-name")?.text() ?: return null
-        val href = fixUrl(this.selectFirst("a")?.attr("href") ?: return null)
-        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("data-src") ?: this.selectFirst("img")?.attr("src"))
-        
-        return newAnimeSearchResponse(title, href, TvType.Anime) {
-            this.posterUrl = posterUrl
+    private suspend fun fetchAll(): AnimeData {
+        return try {
+            val json = app.get(apiUrl).text
+            val parsed = tryParseJson<ApiResponse>(json)
+            parsed?.data ?: AnimeData(emptyMap(), emptyMap())
+        } catch (e: Exception) {
+            AnimeData(emptyMap(), emptyMap())
+        }
+    }
+
+    private fun AnimeItem.toSearchResponse(): SearchResponse? {
+        val id = tmdbId ?: return null
+        val displayTitle = title ?: return null
+        val itemType = if (type?.equals("Series", true) == true) {
+            TvType.TvSeries
+        } else {
+            TvType.Movie
+        }
+
+        return newMovieSearchResponse(displayTitle, id, itemType) {
+            this.posterUrl = images?.poster
         }
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val document = app.get("$mainUrl/search?keyword=$query").document
-        return document.select("div.item, div.film-poster").mapNotNull { it.toSearchResult() }
+        val data = fetchAll()
+        val allItems = (data.movies.values + data.series.values).toList()
+        return allItems
+            .filter { it.title?.contains(query, true) == true }
+            .mapNotNull { it.toSearchResponse() }
     }
 
-    override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url).document
-        val title = document.selectFirst("h2.heading, h1")?.text() ?: "Anime"
-        val poster = fixUrlNull(document.selectFirst(".m-i-poster img, .anime-banner img")?.attr("src"))
-        val description = document.selectFirst(".description, .synopsis")?.text()
-        
-        val episodes = document.select("div.episodes-list a, .episode-item").map {
-            val epHref = fixUrl(it.attr("href"))
-            val epName = it.text()
-            val epNum = Regex("""\d+""").find(epName)?.value?.toIntOrNull()
-            newEpisode(epHref) { name = epName; episode = epNum }
-        }
+    override suspend fun load(url: String): LoadResponse? {
+        val data = fetchAll()
+        val item = data.movies[url]
+            ?: data.series[url]
+            ?: (data.movies.values + data.series.values)
+                .firstOrNull { it.tmdbId == url }
+            ?: return null
 
-        return newAnimeLoadResponse(title, url, TvType.Anime) {
-            this.posterUrl = poster
-            this.plot = description
-            addEpisodes(DubStatus.Dubbed, episodes)
+        val title = item.title ?: "Unknown"
+        val poster = item.images?.poster
+        val plot = item.tmdbData?.synopsis
+        val year = item.tmdbData?.releaseDate
+            ?.substringBefore("-")
+            ?.toIntOrNull()
+        val rating = item.tmdbData?.rating?.toDoubleOrNull()
+        val genres = item.tmdbData?.genres ?: emptyList()
+        val isSeries = item.type?.equals("Series", true) == true
+        val tmdbId = item.tmdbId ?: url
+
+        return if (isSeries) {
+            val episodes = mutableListOf<Episode>()
+            val seasons = item.seasons ?: emptyMap()
+
+            seasons.forEach { (seasonKey, seasonInfo) ->
+                val seasonNum = seasonInfo.seasonNumber
+                    ?: seasonKey.toIntOrNull()
+                    ?: 1
+                val total = seasonInfo.totalEpisodes ?: 0
+                for (ep in 1..total) {
+                    val episodeData = "$tmdbId|$seasonNum|$ep|series"
+                    episodes.add(
+                        newEpisode(episodeData) {
+                            this.name = "S$seasonNum E$ep"
+                            this.season = seasonNum
+                            this.episode = ep
+                            this.posterUrl = poster
+                        }
+                    )
+                }
+            }
+
+            newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
+                this.posterUrl = poster
+                this.plot = plot
+                this.year = year
+                this.tags = genres
+                this.score = Score.from10(rating)
+            }
+        } else {
+            val movieData = "$tmdbId|1|1|movie"
+            newMovieLoadResponse(title, url, TvType.Movie, movieData) {
+                this.posterUrl = poster
+                this.plot = plot
+                this.year = year
+                this.tags = genres
+                this.score = Score.from10(rating)
+            }
         }
     }
 
@@ -65,10 +156,87 @@ class SubDubAnimeProvider : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val document = app.get(data).document
-        val iframeUrl = document.selectFirst("iframe")?.attr("src") ?: return false
-        
-        loadExtractor(iframeUrl, data, subtitleCallback, callback)
+        val parts = data.split("|")
+        if (parts.size < 4) return false
+
+        val tmdbId = parts[0]
+        val season = parts[1].toIntOrNull() ?: 1
+        val episode = parts[2].toIntOrNull() ?: 1
+        val type = parts[3]
+
+        val embedUrl = if (type == "movie") {
+            "${blakiteBase}embed/$tmdbId"
+        } else {
+            "${blakiteBase}embed/$tmdbId/$season-$episode"
+        }
+
+        loadExtractor(embedUrl, "$mainUrl/", subtitleCallback) { link ->
+            callback.invoke(link)
+        }
+
+        val downloadUrl = if (type == "movie") {
+            "${blakiteBase}stream/$tmdbId"
+        } else {
+            "${blakiteBase}stream/$tmdbId/$season-$episode"
+        }
+
+        callback.invoke(
+            newExtractorLink(
+                source = "Blakite Download",
+                name = "Blakite Download",
+                url = downloadUrl,
+                type = ExtractorLinkType.VIDEO
+            ) {
+                this.referer = "$mainUrl/"
+            }
+        )
+
         return true
     }
+
+    // ===== Data classes =====
+    data class ApiResponse(
+        val success: Boolean? = null,
+        val data: AnimeData = AnimeData(emptyMap(), emptyMap())
+    )
+
+    data class AnimeData(
+        val movies: Map<String, AnimeItem> = emptyMap(),
+        val series: Map<String, AnimeItem> = emptyMap()
+    )
+
+    data class AnimeItem(
+        val tmdbId: String? = null,
+        @JsonProperty("originalTmdbId")
+        val originalTmdbId: String? = null,
+        val title: String? = null,
+        val language: String? = null,
+        val type: String? = null,
+        val status: String? = null,
+        @JsonProperty("TMDB_DATA")
+        val tmdbData: TmdbData? = null,
+        @JsonProperty("IMAGES")
+        val images: Images? = null,
+        val seasons: Map<String, SeasonInfo>? = null
+    )
+
+    data class TmdbData(
+        val genres: List<String>? = null,
+        val synopsis: String? = null,
+        val rating: String? = null,
+        val releaseDate: String? = null,
+        val keywords: List<String>? = null,
+        val trailer: String? = null
+    )
+
+    data class Images(
+        val poster: String? = null,
+        val backdrop: String? = null
+    )
+
+    data class SeasonInfo(
+        val seasonNumber: Int? = null,
+        val status: String? = null,
+        val totalEpisodes: Int? = null
+    )
 }
