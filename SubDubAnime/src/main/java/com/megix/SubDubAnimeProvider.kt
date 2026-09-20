@@ -210,7 +210,7 @@ class SubDubAnimeProvider : MainAPI() {
     }
 
     // ---------------------------------------------------------
-    // LINK LOADING  (API BYPASS - WORKING)
+    // LINK LOADING  (Movies = MP4, Series = M3U8 ranges)
     // ---------------------------------------------------------
 
     override suspend fun loadLinks(
@@ -260,36 +260,32 @@ class SubDubAnimeProvider : MainAPI() {
 
             val json = JSONObject(response.text)
             if (!json.optBoolean("success", false)) {
-                Log.e("SubDub", "get.php success=false: ${response.text.take(200)}")
+                Log.e("SubDub", "get.php success=false: ${response.text.take(150)}")
                 return false
             }
 
             val d = json.optJSONObject("data") ?: return false
             val dataId = d.optString("dataId")
+            val format = d.optString("format").uppercase()
             val ranges = d.optString("ranges")
+            val qualityStr = d.optString("quality").ifBlank { "480p" }
 
-            if (dataId.isBlank() || ranges.isBlank()) {
-                Log.e("SubDub", "Missing dataId or ranges")
+            if (dataId.isBlank()) {
+                Log.e("SubDub", "Missing dataId")
                 return false
             }
 
             var found = false
 
-            ranges.lines().forEach { line ->
-                val match = Regex("""(\d+-\d+)\s*\((\d+p)\)""").find(line.trim()) ?: return@forEach
-                val range = match.groupValues[1]
-                val qualityStr = match.groupValues[2]
-
-                val m3u8 =
-                    "https://hugh.cdn.rumble.cloud/video/$dataId.caa.tar" +
-                    "?r_file=chunklist.m3u8&r_type=application%2Fvnd.apple.mpegurl&r_range=$range"
+            // ---------- MOVIE / MP4 ----------
+            if (format == "MP4" || ranges.isBlank()) {
+                val mp4 = "https://hugh.cdn.rumble.cloud/video/$dataId.caa.mp4"
 
                 val quality = when {
                     qualityStr.contains("1080") -> Qualities.P1080.value
                     qualityStr.contains("720")  -> Qualities.P720.value
                     qualityStr.contains("480")  -> Qualities.P480.value
                     qualityStr.contains("360")  -> Qualities.P360.value
-                    qualityStr.contains("240")  -> Qualities.P240.value
                     else -> Qualities.Unknown.value
                 }
 
@@ -297,8 +293,8 @@ class SubDubAnimeProvider : MainAPI() {
                     newExtractorLink(
                         source = name,
                         name = "$name $qualityStr",
-                        url = m3u8,
-                        type = ExtractorLinkType.M3U8
+                        url = mp4,
+                        type = ExtractorLinkType.VIDEO
                     ) {
                         this.referer = mainUrl
                         this.quality = quality
@@ -306,8 +302,42 @@ class SubDubAnimeProvider : MainAPI() {
                 )
                 found = true
             }
+            // ---------- SERIES / M3U8 ----------
+            else {
+                ranges.lines().forEach { line ->
+                    val match = Regex("""(\d+-\d+)\s*\((\d+p)\)""").find(line.trim()) ?: return@forEach
+                    val range = match.groupValues[1]
+                    val q = match.groupValues[2]
 
-            Log.d("SubDub", "Emitted links: $found")
+                    val m3u8 =
+                        "https://hugh.cdn.rumble.cloud/video/$dataId.caa.tar" +
+                        "?r_file=chunklist.m3u8&r_type=application%2Fvnd.apple.mpegurl&r_range=$range"
+
+                    val quality = when {
+                        q.contains("1080") -> Qualities.P1080.value
+                        q.contains("720")  -> Qualities.P720.value
+                        q.contains("480")  -> Qualities.P480.value
+                        q.contains("360")  -> Qualities.P360.value
+                        q.contains("240")  -> Qualities.P240.value
+                        else -> Qualities.Unknown.value
+                    }
+
+                    callback.invoke(
+                        newExtractorLink(
+                            source = name,
+                            name = "$name $q",
+                            url = m3u8,
+                            type = ExtractorLinkType.M3U8
+                        ) {
+                            this.referer = mainUrl
+                            this.quality = quality
+                        }
+                    )
+                    found = true
+                }
+            }
+
+            Log.d("SubDub", "Emitted links: $found  format=$format")
             found
 
         } catch (e: Exception) {
