@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.api.Log
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
+import com.lagradost.cloudstream3.utils.AppUtils.parseJson
 import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
 import org.json.JSONObject
 
@@ -22,8 +23,9 @@ class SubDubAnimeProvider : MainAPI() {
         TvType.TvSeries
     )
 
-    private val apiUrl = "https://blakiteapi.xyz/api/getAllAnime.php"
-    private val playerBase = "https://blakiteapi.xyz/"
+    private val listApi = "https://blakiteapi.xyz/api/getAllAnime.php"
+    private val getApi = "https://blakiteapi.xyz/api/get.php"
+    private val playerBase = "https://blakiteapi.xyz"
 
     private val ua =
         "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 " +
@@ -46,7 +48,6 @@ class SubDubAnimeProvider : MainAPI() {
         page: Int,
         request: MainPageRequest
     ): HomePageResponse {
-
         val data = fetchAll()
         val allItems = (data.movies.values + data.series.values).toList()
 
@@ -86,37 +87,26 @@ class SubDubAnimeProvider : MainAPI() {
     }
 
     // ---------------------------------------------------------
-    // API
+    // FETCH CATALOGUE
     // ---------------------------------------------------------
 
     private suspend fun fetchAll(): AnimeData {
         return try {
             val response = app.get(
-                apiUrl,
+                listApi,
                 headers = mapOf(
                     "User-Agent" to ua,
-                    "Accept" to "application/json, text/plain, */*",
-                    "Referer" to playerBase
-                ),
-                allowRedirects = true
+                    "Accept" to "application/json",
+                    "Referer" to "$playerBase/"
+                )
             )
-
-            if (response.code !in 200..299) {
-                Log.e("SubDub", "API HTTP ${response.code}")
-                return AnimeData()
-            }
-
+            if (response.code !in 200..299) return AnimeData()
             tryParseJson<ApiResponse>(response.text)?.data ?: AnimeData()
-
         } catch (e: Exception) {
-            Log.e("SubDub", "fetchAll failed: ${e.message}")
+            Log.e("SubDub", "fetchAll: ${e.message}")
             AnimeData()
         }
     }
-
-    // ---------------------------------------------------------
-    // SEARCH RESPONSE
-    // ---------------------------------------------------------
 
     private fun AnimeItem.toSearchResponse(): SearchResponse? {
         val id = tmdbId ?: return null
@@ -124,11 +114,11 @@ class SubDubAnimeProvider : MainAPI() {
 
         return if (type?.equals("Series", true) == true) {
             newTvSeriesSearchResponse(title, id, TvType.TvSeries) {
-                posterUrl = images?.poster
+                this.posterUrl = images?.poster
             }
         } else {
             newMovieSearchResponse(title, id, TvType.Movie) {
-                posterUrl = images?.poster
+                this.posterUrl = images?.poster
             }
         }
     }
@@ -140,29 +130,21 @@ class SubDubAnimeProvider : MainAPI() {
     override suspend fun load(url: String): LoadResponse? {
         val data = fetchAll()
 
-        val cleanUrl = url.substringBefore("?").trimEnd('/')
-        val lookupId = cleanUrl.substringAfterLast('/')
-
-        Log.d("SubDub", "load url=$url lookupId=$lookupId")
+        val lookupId = url.substringBefore("?").trimEnd('/').substringAfterLast('/')
 
         val item =
             data.movies[lookupId]
                 ?: data.series[lookupId]
-                ?: data.movies[url]
-                ?: data.series[url]
                 ?: (data.movies.values + data.series.values)
                     .firstOrNull { it.tmdbId == lookupId || it.tmdbId == url }
-                ?: run {
-                    Log.e("SubDub", "No catalogue item found for $url")
-                    return null
-                }
+                ?: return null
 
         val title = item.title ?: "Unknown"
         val poster = item.images?.poster
         val backdrop = item.images?.backdrop
         val plot = item.tmdbData?.synopsis
         val year = item.tmdbData?.releaseDate?.substringBefore("-")?.toIntOrNull()
-        val rating = item.tmdbData?.rating?.toDoubleOrNull()
+        val rating = item.tmdbData?.rating
         val genres = item.tmdbData?.genres ?: emptyList()
         val tmdbId = item.tmdbId ?: lookupId
         val isSeries = item.type?.equals("Series", true) == true
@@ -173,42 +155,51 @@ class SubDubAnimeProvider : MainAPI() {
 
             seasons.forEach { (key, info) ->
                 val seasonNumber = info.seasonNumber ?: key.toIntOrNull() ?: 1
-                val totalEpisodes = info.totalEpisodes ?: 0
+                val total = info.totalEpisodes ?: 0
 
-                for (episodeNumber in 1..totalEpisodes) {
+                for (ep in 1..total) {
+                    // Same style as Vega: pass list of EpisodeLink as data
+                    val links = listOf(
+                        EpisodeLink(
+                            source = "$tmdbId|$seasonNumber|$ep|series"
+                        )
+                    )
                     episodes.add(
-                        newEpisode("$tmdbId|$seasonNumber|$episodeNumber|series") {
-                            name = "S$seasonNumber E$episodeNumber"
-                            season = seasonNumber
-                            episode = episodeNumber
-                            posterUrl = poster
+                        newEpisode(links) {
+                            this.name = "S$seasonNumber E$ep"
+                            this.season = seasonNumber
+                            this.episode = ep
+                            this.posterUrl = poster
                         }
                     )
                 }
             }
 
             return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
-                posterUrl = poster
-                backgroundPosterUrl = backdrop
+                this.posterUrl = poster
+                this.backgroundPosterUrl = backdrop
                 this.plot = plot
                 this.year = year
-                tags = genres
-                score = Score.from10(rating)
+                this.tags = genres
+                this.score = Score.from10(rating)
             }
         } else {
-            return newMovieLoadResponse(title, url, TvType.Movie, "$tmdbId|1|1|movie") {
-                posterUrl = poster
-                backgroundPosterUrl = backdrop
+            val links = listOf(
+                EpisodeLink(source = "$tmdbId|1|1|movie")
+            )
+            return newMovieLoadResponse(title, url, TvType.Movie, links) {
+                this.posterUrl = poster
+                this.backgroundPosterUrl = backdrop
                 this.plot = plot
                 this.year = year
-                tags = genres
-                score = Score.from10(rating)
+                this.tags = genres
+                this.score = Score.from10(rating)
             }
         }
     }
 
     // ---------------------------------------------------------
-    // LINK LOADING  (Multi Quality + MP4 + M3U8)
+    // LOAD LINKS  (Vega style + blakite API)
     // ---------------------------------------------------------
 
     override suspend fun loadLinks(
@@ -218,151 +209,128 @@ class SubDubAnimeProvider : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
 
-        val parts = data.split("|")
-        val tmdbId = parts.getOrNull(0) ?: return false
-        val season = parts.getOrNull(1)?.toIntOrNull() ?: 1
-        val episode = parts.getOrNull(2)?.toIntOrNull() ?: 1
-        val type = parts.getOrNull(3) ?: "movie"
-
-        Log.d("SubDub", "loadLinks data=$data")
-
-        val isMovie = type.equals("movie", true)
-        val uniqueId = if (isMovie) null else "$season-$episode"
-
-        val apiCallUrl = if (isMovie) {
-            "https://blakiteapi.xyz/api/get.php?tmdbId=$tmdbId"
-        } else {
-            "https://blakiteapi.xyz/api/get.php?id=$uniqueId&tmdbId=$tmdbId"
+        val sources = try {
+            parseJson<ArrayList<EpisodeLink>>(data)
+        } catch (e: Exception) {
+            // fallback if data is plain string
+            listOf(EpisodeLink(data))
         }
 
-        val referer = if (isMovie) {
-            "https://blakiteapi.xyz/embed/$tmdbId"
-        } else {
-            "https://blakiteapi.xyz/embed/$tmdbId/$uniqueId"
-        }
+        var found = false
 
-        return try {
-            val response = app.get(
-                apiCallUrl,
-                headers = mapOf(
-                    "User-Agent" to ua,
-                    "Referer" to referer,
-                    "Origin" to "https://blakiteapi.xyz",
-                    "Accept" to "application/json"
+        sources.forEach { link ->
+            val parts = link.source.split("|")
+            val tmdbId = parts.getOrNull(0) ?: return@forEach
+            val season = parts.getOrNull(1)?.toIntOrNull() ?: 1
+            val episode = parts.getOrNull(2)?.toIntOrNull() ?: 1
+            val type = parts.getOrNull(3) ?: "movie"
+
+            val isMovie = type.equals("movie", true)
+            val uniqueId = if (isMovie) null else "$season-$episode"
+
+            val apiUrl = if (isMovie) {
+                "$getApi?tmdbId=$tmdbId"
+            } else {
+                "$getApi?id=$uniqueId&tmdbId=$tmdbId"
+            }
+
+            val referer = if (isMovie) {
+                "$playerBase/embed/$tmdbId"
+            } else {
+                "$playerBase/embed/$tmdbId/$uniqueId"
+            }
+
+            try {
+                val response = app.get(
+                    apiUrl,
+                    headers = mapOf(
+                        "User-Agent" to ua,
+                        "Referer" to referer,
+                        "Origin" to playerBase,
+                        "Accept" to "application/json"
+                    )
                 )
-            )
 
-            if (response.code !in 200..299) {
-                Log.e("SubDub", "HTTP ${response.code}")
-                return false
-            }
+                if (response.code !in 200..299) return@forEach
 
-            val json = JSONObject(response.text)
-            if (!json.optBoolean("success", false)) {
-                Log.e("SubDub", "success=false")
-                return false
-            }
+                val json = JSONObject(response.text)
+                if (!json.optBoolean("success", false)) return@forEach
 
-            val d = json.optJSONObject("data") ?: return false
-            val dataId = d.optString("dataId")
-            val format = d.optString("format").uppercase()
-            val ranges = d.optString("ranges")
-            val qualityStr = d.optString("quality").ifBlank { "480p" }
+                val d = json.optJSONObject("data") ?: return@forEach
+                val dataId = d.optString("dataId")
+                val format = d.optString("format").uppercase()
+                val ranges = d.optString("ranges")
+                val qualityStr = d.optString("quality").ifBlank { "480p" }
 
-            if (dataId.isBlank()) {
-                Log.e("SubDub", "empty dataId")
-                return false
-            }
+                if (dataId.isBlank()) return@forEach
 
-            var found = false
-
-            // Case 1: MP4 (mostly movies, sometimes series)
-            if (format == "MP4" || ranges.isBlank()) {
-                val mp4 = "https://hugh.cdn.rumble.cloud/video/$dataId.caa.mp4"
-
-                val quality = when {
-                    qualityStr.contains("1080") -> Qualities.P1080.value
-                    qualityStr.contains("720")  -> Qualities.P720.value
-                    qualityStr.contains("480")  -> Qualities.P480.value
-                    qualityStr.contains("360")  -> Qualities.P360.value
+                fun q(v: String): Int = when {
+                    v.contains("1080") -> Qualities.P1080.value
+                    v.contains("720")  -> Qualities.P720.value
+                    v.contains("480")  -> Qualities.P480.value
+                    v.contains("360")  -> Qualities.P360.value
+                    v.contains("240")  -> Qualities.P240.value
                     else -> Qualities.Unknown.value
                 }
 
-                callback.invoke(
-                    ExtractorLink(
-                        source = name,
-                        name = "$name $qualityStr",
-                        url = mp4,
-                        referer = mainUrl,
-                        quality = quality,
-                        type = ExtractorLinkType.VIDEO
-                    )
-                )
-                found = true
-            }
-
-            // Case 2: M3U8 multi quality (ranges present)
-            if (ranges.isNotBlank()) {
-                ranges.lines().forEach { line ->
-                    val match = Regex("""(\d+-\d+)\s*\((\d+p)\)""").find(line.trim()) ?: return@forEach
-                    val range = match.groupValues[1]
-                    val q = match.groupValues[2]
-
-                    val m3u8 =
-                        "https://hugh.cdn.rumble.cloud/video/$dataId.caa.tar" +
-                        "?r_file=chunklist.m3u8&r_type=application%2Fvnd.apple.mpegurl&r_range=$range"
-
-                    val quality = when {
-                        q.contains("1080") -> Qualities.P1080.value
-                        q.contains("720")  -> Qualities.P720.value
-                        q.contains("480")  -> Qualities.P480.value
-                        q.contains("360")  -> Qualities.P360.value
-                        q.contains("240")  -> Qualities.P240.value
-                        else -> Qualities.Unknown.value
-                    }
-
-                    callback.invoke(
-                        ExtractorLink(
-                            source = name,
-                            name = "$name $q",
-                            url = m3u8,
-                            referer = mainUrl,
-                            quality = quality,
-                            type = ExtractorLinkType.M3U8
-                        )
-                    )
+                // MP4 (movies + many series)
+                if (format == "MP4" || ranges.isBlank()) {
+                    val mp4 = "https://hugh.cdn.rumble.cloud/video/$dataId.caa.mp4"
+                  callback.invoke(
+    newExtractorLink(
+        name,
+        "$name $qualityStr",
+        mp4,
+        type = ExtractorLinkType.VIDEO
+    ) {
+        this.referer = mainUrl
+        this.quality = q(qualityStr)
+    }
+)
                     found = true
                 }
+
+                // Multi quality M3U8
+                if (ranges.isNotBlank()) {
+                    ranges.lines().forEach { line ->
+                        val match = Regex("""(\d+-\d+)\s*\((\d+p)\)""").find(line.trim()) ?: return@forEach
+                        val range = match.groupValues[1]
+                        val qualityLabel = match.groupValues[2]
+
+                        val m3u8 =
+                            "https://hugh.cdn.rumble.cloud/video/$dataId.caa.tar" +
+                            "?r_file=chunklist.m3u8&r_type=application%2Fvnd.apple.mpegurl&r_range=$range"
+
+                   callback.invoke(
+    newExtractorLink(
+        name,
+        "$name $qualityLabel",
+        m3u8,
+        type = ExtractorLinkType.M3U8
+    ) {
+        this.referer = mainUrl
+        this.quality = q(qualityLabel)
+    }
+) 
+                        found = true
+                    }
+                }
+
+            } catch (e: Exception) {
+                Log.e("SubDub", "loadLinks error: ${e.message}")
             }
-
-            // Fallback: try plain m3u8 without range if nothing found
-            if (!found) {
-                val fallback = "https://hugh.cdn.rumble.cloud/video/$dataId.caa.tar?r_file=chunklist.m3u8&r_type=application%2Fvnd.apple.mpegurl"
-                callback.invoke(
-                    ExtractorLink(
-                        source = name,
-                        name = "$name Auto",
-                        url = fallback,
-                        referer = mainUrl,
-                        quality = Qualities.Unknown.value,
-                        type = ExtractorLinkType.M3U8
-                    )
-                )
-                found = true
-            }
-
-            Log.d("SubDub", "found=$found format=$format")
-            found
-
-        } catch (e: Exception) {
-            Log.e("SubDub", "Exception: ${e.message}")
-            false
         }
+
+        return found
     }
 
     // ---------------------------------------------------------
     // DATA MODELS
     // ---------------------------------------------------------
+
+    data class EpisodeLink(
+        val source: String
+    )
 
     data class ApiResponse(
         val success: Boolean? = null,
@@ -376,21 +344,16 @@ class SubDubAnimeProvider : MainAPI() {
 
     data class AnimeItem(
         val tmdbId: String? = null,
-
         @JsonProperty("originalTmdbId")
         val originalTmdbId: String? = null,
-
         val title: String? = null,
         val language: String? = null,
         val type: String? = null,
         val status: String? = null,
-
         @JsonProperty("TMDB_DATA")
         val tmdbData: TmdbData? = null,
-
         @JsonProperty("IMAGES")
         val images: Images? = null,
-
         val seasons: Map<String, SeasonInfo>? = null
     )
 
@@ -414,3 +377,4 @@ class SubDubAnimeProvider : MainAPI() {
         val totalEpisodes: Int? = null
     )
 }
+
